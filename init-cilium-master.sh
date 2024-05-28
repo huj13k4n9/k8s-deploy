@@ -21,10 +21,6 @@ sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 DONE
 
-INFO "[*] Change permissions of /opt/cni"
-chown -R $(id -n -u):$(id -n -g) /opt/cni
-DONE
-
 INFO "[*] Install Cilium"
 cilium install --version $(echo $CILIUM_VERSION | sed 's/v//g')
 cilium status --wait

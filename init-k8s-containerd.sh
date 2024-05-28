@@ -211,6 +211,10 @@ curl -sSL "https://raw.gitmirror.com/kubernetes/release/${KUBE_RELEASE_VERSION}/
 systemctl enable --now kubelet
 DONE
 
+INFO "[*] Change permissions of /opt/cni"
+chown -R $(id -n -u):$(id -n -g) /opt/cni
+DONE
+
 INFO "[*] Pull images"
 kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers
 DONE
