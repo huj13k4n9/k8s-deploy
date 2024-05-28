@@ -6,9 +6,70 @@ function get_latest_version() {
     curl -sSL "https://api.github.com/repos/$1/releases" | jq -r '[.[] | select(.prerelease == false)][0].tag_name'
 }
 
-if [ $# -ne 1 ] || ([ $# -eq 1 ] && [ $1 != "master" ] && [ $1 != "node" ]); then
-    echo "Usage: $0 <master|node>"
+
+# Usage function to display help message
+usage() {
+    echo "Usage: $0 master|node [--master-ip <ip>] [--token <token>] [--hash <hash>]"
+    printf "    --master-ip\tIP:PORT of master node, example: 127.0.0.1:6443\n"
+    printf "    --token\tValue of --token in kubeadm join\n"
+    printf "    --hash\tValue of --ca-cert-hash in kubeadm join, example: sha256:......\n"
     exit 1
+}
+
+# Initializing variables
+MASTER_IP=""
+TOKEN=""
+CERT_HASH=""
+
+# Checking the first argument
+if [ "$1" != "master" ] && [ "$1" != "node" ]; then
+    echo "Error: The first argument must be 'master' or 'node'."
+    usage
+fi
+
+ROLE="$1"
+shift
+
+# Parsing the remaining arguments
+while (( "$#" )); do
+    case "$1" in
+        --master-ip)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --master-ip is only valid when the first argument is 'node'."
+                usage
+            fi
+            MASTER_IP="$2"
+            shift 2
+            ;;
+        --token)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --token is only valid when the first argument is 'node'."
+                usage
+            fi
+            TOKEN="$2"
+            shift 2
+            ;;
+        --hash)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --hash is only valid when the first argument is 'node'."
+                usage
+            fi
+            CERT_HASH="$2"
+            shift 2
+            ;;
+        *)
+            echo "Error: Invalid argument '$1'."
+            usage
+            ;;
+    esac
+done
+
+# Validating required arguments for 'node' role
+if [ "$ROLE" == "node" ]; then
+    if [ -z "$MASTER_IP" ] || [ -z "$TOKEN" ] || [ -z "$CERT_HASH" ]; then
+        echo "Error: --master-ip, --token, and --hash are required when the first argument is 'node'."
+        usage
+    fi
 fi
 
 yum install -y jq conntrack ipset ipvsadm ntpdate socat
@@ -228,7 +289,9 @@ if [ "$1" = "master" ]; then
     chown $(id -u):$(id -g) $HOME/.kube/config
     DONE
 elif [ "$1" = "node" ]; then
-    INFO "[*] Use command from master (kubeadm join ...) to initiate k8s node."
+    INFO "[*] Perform kubeadm join ..."
+    kubeadm join $MASTER_IP \
+            --token $TOKEN --discovery-token-ca-cert-hash $CERT_HASH
     DONE
 fi
 

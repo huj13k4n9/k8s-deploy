@@ -56,7 +56,7 @@ while (( "$#" )); do
             ;;
         --hash)
             if [ "$ROLE" != "node" ]; then
-                echo "Error: --cert-hash is only valid when the first argument is 'node'."
+                echo "Error: --hash is only valid when the first argument is 'node'."
                 usage
             fi
             CERT_HASH="$2"
@@ -72,7 +72,7 @@ done
 # Validating required arguments for 'node' role
 if [ "$ROLE" == "node" ]; then
     if [ -z "$MASTER_IP" ] || [ -z "$TOKEN" ] || [ -z "$CERT_HASH" ]; then
-        echo "Error: --master-ip, --token, and --cert-hash are required when the first argument is 'node'."
+        echo "Error: --master-ip, --token, and --hash are required when the first argument is 'node'."
         usage
     fi
 fi
