@@ -44,6 +44,11 @@ INFO "[*] K8S_RELEASE_VERSION $K8S_RELEASE_VERSION"
 
 read
 
+INFO "[*] Extract files"
+cat data/rpm.tar.gz* > data/rpm.tar.gz
+tar xzvf data/rpm.tar.gz -C data/
+DONE
+
 INFO "[*] Stop firewalld"
 systemctl stop firewalld
 systemctl disable firewalld
