@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function INFO() { echo -e "\e[0;32m${1}\e[0m";read; }
+function INFO() { echo -e "\e[0;32m${1}\e[0m"; }
 function DONE() { echo -e "\e[0;34m[✓] Done! \e[0m\n"; }
 function get_latest_version() {
     curl -sSL "https://api.github.com/repos/$1/releases" | jq -r '[.[] | select(.prerelease == false)][0].tag_name'
@@ -139,13 +139,16 @@ if [ $BUILD_ISULAD -eq 1 ]; then
     DONE
 else
     INFO "[*] BUILD_ISULAD is false"
+    INFO "[*] Install iSulad"
     ISULAD_VERSION="2.1.5"
+    yum install -y libisula grpc protobuf libcurl libseccomp libcap libselinux libwebsockets libarchive device-mapper runc lib-shim-v2
     rpm -Uvh data/iSulad-$ISULAD_VERSION-1.x86_64.rpm
     # yum install -y iSulad conntrack socat
+    DONE
 fi
 
 INFO "[*] Edit iSulad configurations"
-mv data/daemon.json /etc/isulad/daemon.json
+cp data/daemon.json /etc/isulad/daemon.json
 systemctl restart isulad
 DONE
 
