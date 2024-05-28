@@ -77,15 +77,6 @@ if [ "$ROLE" == "node" ]; then
     fi
 fi
 
-# Displaying the parsed values for debugging purposes
-echo "Role: $ROLE"
-echo "Build: $BUILD_ISULAD"
-if [ "$ROLE" == "node" ]; then
-    echo "Master IP: $MASTER_IP"
-    echo "Token: $TOKEN"
-    echo "Cert Hash: $CERT_HASH"
-fi
-
 yum install -y jq ipset ipvsadm ntpdate conntrack \
                socat ncurses ncurses-devel lxc lxc-libs \
                gmock gmock-devel runc libisula libisula-devel \
@@ -93,11 +84,10 @@ yum install -y jq ipset ipvsadm ntpdate conntrack \
 
 RPM=~/rpmbuild
 ARCH="amd64"
-# CNI_PLUGINS_VERSION="v1.3.0"
+# CNI_PLUGINS_VERSION="v1.5.0"
 CNI_PLUGINS_VERSION=$(get_latest_version "containernetworking/plugins")
-# CRICTL_VERSION="v1.28.0"
+# CRICTL_VERSION="v1.30.0"
 CRICTL_VERSION=$(get_latest_version "kubernetes-sigs/cri-tools")
-# K8S_RELEASE_VERSION="v1.29.3"
 K8S_RELEASE_VERSION="1.29.1-4"
 CNI_DIR="/opt/cni/bin"
 CNI_CONF_DIR="/etc/cni/net.d"
