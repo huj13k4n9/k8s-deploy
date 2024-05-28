@@ -6,18 +6,84 @@ function get_latest_version() {
     curl -sSL "https://api.github.com/repos/$1/releases" | jq -r '[.[] | select(.prerelease == false)][0].tag_name'
 }
 
-if ([ $# -gt 2 ] || [ $# -lt 1 ]) ||
-   ([ $# -eq 1 ] && [ $1 != "master" ] && [ $1 != "node" ]) ||
-   ([ $# -eq 2 ] && (([ $1 != "master" ] && [ $1 != "node" ]) || [ $2 != "--build" ])); then
-    echo "Usage: $0 <master|node> [--build]"
-    printf "    --build\tBuild iSulad instead of using existing RPM"
+# Usage function to display help message
+usage() {
+    echo "Usage: $0 master|node [--build] [--master-ip <ip>] [--token <token>] [--hash <hash>]"
+    printf "    --build\tBuild iSulad intead of using existing RPM\n"
+    printf "    --master-ip\tIP:PORT of master node, example: 127.0.0.1:6443\n"
+    printf "    --token\tValue of --token in kubeadm join\n"
+    printf "    --hash\tValue of --ca-cert-hash in kubeadm join, example: sha256:......\n"
     exit 1
+}
+
+# Initializing variables
+BUILD_ISULAD=0
+MASTER_IP=""
+TOKEN=""
+CERT_HASH=""
+
+# Checking the first argument
+if [ "$1" != "master" ] && [ "$1" != "node" ]; then
+    echo "Error: The first argument must be 'master' or 'node'."
+    usage
 fi
 
-if ([ $# -eq 2 ] && [ $2 != "--build" ]) || [ $# -eq 1 ]; then
-    BUILD_ISULAD=0
-else
-    BUILD_ISULAD=1
+ROLE="$1"
+shift
+
+# Parsing the remaining arguments
+while (( "$#" )); do
+    case "$1" in
+        --build)
+            BUILD_ISULAD=1
+            shift
+            ;;
+        --master-ip)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --master-ip is only valid when the first argument is 'node'."
+                usage
+            fi
+            MASTER_IP="$2"
+            shift 2
+            ;;
+        --token)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --token is only valid when the first argument is 'node'."
+                usage
+            fi
+            TOKEN="$2"
+            shift 2
+            ;;
+        --hash)
+            if [ "$ROLE" != "node" ]; then
+                echo "Error: --cert-hash is only valid when the first argument is 'node'."
+                usage
+            fi
+            CERT_HASH="$2"
+            shift 2
+            ;;
+        *)
+            echo "Error: Invalid argument '$1'."
+            usage
+            ;;
+    esac
+done
+
+# Validating required arguments for 'node' role
+if [ "$ROLE" == "node" ]; then
+    if [ -z "$MASTER_IP" ] || [ -z "$TOKEN" ] || [ -z "$CERT_HASH" ]; then
+        echo "Error: --master-ip, --token, and --cert-hash are required when the first argument is 'node'."
+        usage
+    fi
+fi
+
+# Displaying the parsed values for debugging purposes
+echo "Role: $ROLE"
+echo "Build: $BUILD_ISULAD"
+if [ "$ROLE" == "node" ]; then
+    echo "Master IP: $MASTER_IP"
+    echo "Token: $TOKEN"
+    echo "Cert Hash: $CERT_HASH"
 fi
 
 yum install -y jq ipset ipvsadm ntpdate conntrack \
@@ -204,15 +270,17 @@ INFO "[*] Pull images"
 kubeadm config images pull --cri-socket=unix:///var/run/isulad.sock --image-repository=registry.aliyuncs.com/google_containers
 DONE
 
-if [ "$1" = "master" ]; then
+if [ "$ROLE" = "master" ]; then
     INFO "[*] Initiate k8s master"
     kubeadm init --cri-socket=unix:///var/run/isulad.sock --pod-network-cidr=$POD_NET_CIDR --image-repository=registry.aliyuncs.com/google_containers
     mkdir -p $HOME/.kube
     cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     chown $(id -u):$(id -g) $HOME/.kube/config
     DONE
-elif [ "$1" = "node" ]; then
-    INFO "[*] Use command from master (kubeadm join ...) to initiate k8s node."
+elif [ "$ROLE" = "node" ]; then
+    INFO "[*] Perform kubeadm join ..."
+    kubeadm join $MASTER_IP --cri-socket=unix:///var/run/isulad.sock \
+            --token $TOKEN --discovery-token-ca-cert-hash $CERT_HASH
     DONE
 fi
 
