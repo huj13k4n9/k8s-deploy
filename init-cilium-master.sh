@@ -12,6 +12,7 @@ CLI_ARCH=amd64
 
 INFO "[*] CILIUM_CLI_VERSION $CILIUM_CLI_VERSION"
 INFO "[*] CILIUM_VERSION $CILIUM_VERSION"
+INFO "Press any key to continue ..."
 read
 
 INFO "[*] Install Cilium CLI"

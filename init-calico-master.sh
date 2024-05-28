@@ -11,6 +11,7 @@ CALICO_VERSION=$(get_latest_version "projectcalico/calico")
 POD_NET_CIDR="10.0.0.0/16"
 
 INFO "[*] CALICO_VERSION $CALICO_VERSION"
+INFO "Press any key to continue ..."
 read
 
 INFO "[*] Configure NetworkManager"
